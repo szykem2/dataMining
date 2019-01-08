@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.svm import OneClassSVM
 from sklearn.metrics import confusion_matrix, accuracy_score
 
@@ -27,9 +28,9 @@ def outliers(x, y):
     stdev = np.std(x, axis=0)
     ind = np.unique(np.where(np.abs(x-mean) > 3 * stdev)[0])
     #  >these three lines are to preserve all pulsars, because it deletes half of them
-    pind = np.unique(np.where(y == 1)[0])
-    iind = np.unique(np.where(np.isin(ind, pind)))
-    ind = np.delete(ind, iind)
+    #  pind = np.unique(np.where(y == 1)[0])
+    #  iind = np.unique(np.where(np.isin(ind, pind)))
+    #  ind = np.delete(ind, iind)
     #  >end
     print("outliers: %d" % len(ind))
     x = np.delete(x, ind, axis=0)
@@ -44,8 +45,10 @@ def reduce_dim(x, dim=3):
     return reduced.values
 
 
-def clusterization(X):
-    pass
+def clusterization(X, n_clusters):
+    cluster = AgglomerativeClustering(n_clusters=n_clusters, affinity='manhattan', linkage='complete')
+    cluster.fit_predict(X)
+    return cluster.labels_
 
 
 def classification(x, y):
@@ -55,7 +58,7 @@ def classification(x, y):
     return cl
 
 
-def plot3D(x, y):
+def plot3D(x, y, size=0.2, categories=2, labels=('not pulsars', 'pulsars'),  colors=('r', 'g'), minc=0):
     fig = plt.figure()
     ax = Axes3D(fig)
     names = ['x', 'y', 'z']
@@ -64,23 +67,22 @@ def plot3D(x, y):
     ax.set_ylabel(names[1])
     ax.set_zlabel(names[2])
 
-    d1 = x[np.where(y == 0)[0], :]
-    d2 = x[np.where(y == 1)[0], :]
-
-    ax.scatter(d1[:, 0], d1[:, 1], d1[:, 2])
-    ax.scatter(d2[:, 0], d2[:, 1], d2[:, 2])
+    for i in range(categories):
+        d = x[np.where(y == (i+minc))[0], :]
+        ax.scatter(d[:, 0], d[:, 1], d[:, 2], s=size, color=colors[i], label=labels[i])
+    plt.legend(loc='best')
     plt.show()
 
 
-def plot2D(x, y):
+def plot2D(x, y, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), colors=('r', 'g'), minc=0):
     plt.xlabel('x')
     plt.ylabel('y')
 
-    d1 = x[np.where(y == 0)[0], :]
-    d2 = x[np.where(y == 1)[0], :]
+    for i in range(categories):
+        d = x[np.where(y == (i+minc))[0], :]
+        plt.scatter(d[:, 0], d[:, 1], s=size, color=colors[i], label=labels[i])
 
-    plt.scatter(d1[:, 0], d1[:, 1])
-    plt.scatter(d2[:, 0], d2[:, 1])
+    plt.legend(loc='best')
     plt.show()
 
 
@@ -88,13 +90,26 @@ def run():
     X, Y = read_csv()
     print("number of records: ", len(Y))
     print("pulsars before outlier detection: ", len(np.where(Y == 1)[0]))
+
     X, Y = outliers(X, Y)
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
-    x_reduced = reduce_dim(X, 2)
-    #plot3D(X[:, :3], Y)
-    plot2D(x_reduced, Y)
+    pulsars = X[np.where(Y == 1)[0], :]  # 1 pulsars, 0 not pulsars
+    y = Y[np.where(Y == 1)[0], :]
+    pulsars = pulsars[:, [3, 6]]  # [0,4], [3, 6], [0, 5]
+    #pulsars = pulsars[:, [0, 1, 4]]  # [0, 1, 4], [0, 1, 5], [0, 2, 4], [0, 3, 4/5], [2, 3, 6], [4, 5/6, 6/7]
+    # dla nie pulsarow [0,1,4], [0,1,7], [0,1, 2], [0, 1, 3]
+    #pulsars = reduce_dim(pulsars, 3)
+    num_of_clusters = 4
+
+    y = clusterization(pulsars, num_of_clusters)
+    colors = ['b', 'g', 'r', 'm', 'y', 'k', 'c']
+
+    if len(pulsars[0]) == 3:
+        plot3D(pulsars, y, 0.5, num_of_clusters, ['c' + str(i+1) for i in range(num_of_clusters)], colors[:num_of_clusters], np.min(y))
+    else:
+        plot2D(pulsars, y, 0.5, num_of_clusters, ['c' + str(i+1) for i in range(num_of_clusters)], colors[:num_of_clusters], np.min(y))
 
 
 if __name__ == "__main__":
