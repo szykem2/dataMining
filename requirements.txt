@@ -2,3 +2,5 @@ pandas
 numpy
 matplotlib
 sklearn
+hdbscan
+scipy

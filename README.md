@@ -15,7 +15,11 @@ Dataset used for mining is pulsar prediction dataset:  https://archive.ics.uci.e
 #### Clustering:   
  * https://scikit-learn.org/stable/modules/clustering.html   
  * https://scikit-learn.org/0.18/auto_examples/cluster/plot_cluster_comparison.html   
- * https://stackoverflow.com/questions/19197715/scikit-learn-k-means-elbow-criterion   
+ * https://stackoverflow.com/questions/19197715/scikit-learn-k-means-elbow-criterion
+ * https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+ * https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html
+ * https://hdbscan.readthedocs.io/en/latest/index.html
+ 
 
 #### Classification:   
  * https://scikit-learn.org/stable/modules/svm.html#classification   
