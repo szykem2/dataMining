@@ -15,12 +15,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.gaussian_process.kernels import RBF
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score,roc_curve,auc
 
 
 def read_csv():
@@ -33,10 +33,19 @@ def read_csv():
     return x, y, dataset
 
 
-def outliers(x, y, ignore_pulsars=False):  # TODO: other methods
-    mean = np.mean(x, axis=0)
-    stdev = np.std(x, axis=0)
-    ind = np.unique(np.where(np.abs(x - mean) > 3 * stdev)[0])
+def outliers(x, y, type, ignore_pulsars=False):  # TODO: other methods
+    ind = None
+    if type == "distance":
+        mean = np.mean(x, axis=0)
+        stdev = np.std(x, axis=0)
+        ind = np.where(np.abs(x - mean) > 3 * stdev)[0]
+    elif type == "density":
+        clusterer = HDBSCAN(min_cluster_size=15)
+        clusterer.fit(x)
+        threshold = pd.Series(clusterer.outlier_scores_).quantile(0.9)
+        sns.distplot(clusterer.outlier_scores_[np.isfinite(clusterer.outlier_scores_)], rug=True)
+        plt.show()
+        ind = np.where(clusterer.outlier_scores_ > threshold)[0]
     #  >these three lines are to preserve all pulsars, because it deletes half of them
     if ignore_pulsars:
         pind = np.unique(np.where(y == 1)[0])
@@ -75,33 +84,68 @@ def clusterization(X, n_clusters, type="agglomerative", ommit_last_class=False):
     return num, cluster.labels_
 
 
-def classification(x, y):
+def classification(x, y, labels):
     classifiers = [
         KNeighborsClassifier(3),
         SVC(kernel="linear", C=0.025),
         SVC(gamma=2, C=1),
-        GaussianProcessClassifier(1.0 * RBF(1.0)),
         DecisionTreeClassifier(max_depth=5),
         RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
         MLPClassifier(alpha=1),
         AdaBoostClassifier(),
         GaussianNB(),
-        QuadraticDiscriminantAnalysis()]
+        QuadraticDiscriminantAnalysis(),
+        LogisticRegression(),
+        ExtraTreesClassifier(),
+        GradientBoostingClassifier()]
 
-    names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
+    names = ["Nearest Neighbors", "Linear SVM", "RBF SVM",
              "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-             "Naive Bayes", "QDA"]
+             "Naive Bayes", "QDA", "LogisticRegression", "ExtraTree", "Gradient Boosting"]
 
+    predictions = []
     results = {}
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.5, random_state=42)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
 
     for name, clf in zip(names, classifiers):
         clf.fit(x_train, y_train)
-        score = clf.fit(x_test, y_test)
-        results[name] = score
+        prediction = clf.predict(x_test)
+        results[name] = accuracy_score(y_test, prediction)
+        predictions.append(prediction)
 
-    print(results)
+    keys = list(results.keys())
+    values = list(results.values())
+    best = keys[values.index(max(values))]
+    print(best, max(values))
+
+    prediction = predictions[names.index(best)]
+    algorithm = classifiers[names.index(best)]
+
+    print("\nclassification report :\n", (classification_report(y_test, prediction)))
+
+    plt.figure(figsize=(13, 10))
+    plt.subplot(221)
+    sns.heatmap(confusion_matrix(y_test, prediction), annot=True, fmt="d", linecolor="k", linewidths=3)
+    plt.title("CONFUSION MATRIX", fontsize=20)
+
+    predicting_probabilites = algorithm.predict_proba(x_test)[:, 1]
+    fpr, tpr, thresholds = roc_curve(y_test, predicting_probabilites)
+    plt.subplot(222)
+    plt.plot(fpr, tpr, label=("Area_under the curve :", auc(fpr, tpr)), color="r")
+    plt.plot([1, 0], [1, 0], linestyle="dashed", color="k")
+    plt.legend(loc="best")
+    plt.title("ROC - CURVE & AREA UNDER CURVE", fontsize=20)
+
+    dataframe = pd.DataFrame(algorithm.feature_importances_, labels).reset_index()
+    dataframe = dataframe.rename(columns={"index": "features", 0: "coefficients"})
+    dataframe = dataframe.sort_values(by="coefficients", ascending=False)
+    plt.subplot(223)
+    ax = sns.barplot(x="coefficients", y="features", data=dataframe, palette="husl")
+    plt.title("FEATURE IMPORTANCES", fontsize=20)
+    for i, j in enumerate(dataframe["coefficients"]):
+        ax.text(.011, i, j, weight="bold")
+    plt.show()
 
 
 def plot_data_summary(data):
@@ -232,12 +276,6 @@ def plot_2d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'p
 
 def make_cluster(X, Y, labels, idxs, num_of_clusters, algorithm, ommit):
     x = X[:, idxs]
-    t = Y
-    # [0, 1], [2, 5]
-    # [0,4], [3, 6], [0, 5]
-    # xx = reduce_dim(x, 1)
-    # x = reduce_dim(x, 3)
-
     num_of_clusters, y = clusterization(x, num_of_clusters, algorithm, ommit)
 
     if len(x[0]) == 3:
@@ -252,15 +290,15 @@ def run():
     print("number of columns: ", X.shape[1])
     print("pulsars before outlier detection: ", len(np.where(Y == 1)[0]))
 
-    #plot_data_summary(dataset)
-    #plot_data_correlation(dataset)
-    #plot_data_proportion(Y)
+    plot_data_summary(dataset)
+    plot_data_correlation(dataset)
+    plot_data_proportion(Y)
     #plot_variable_comparision(dataset) to bym wywalil
-    #plot_variable_pair(dataset)
+    plot_variable_pair(dataset)
 
     headers = np.array(dataset.columns.values.tolist())
-    #make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, True)
+    make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
+    X, Y = outliers(X, Y, "distance",  False) #opcja density nie działa
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
@@ -269,11 +307,10 @@ def run():
     npulsars_x = X[np.where(Y == 0)[0], :]
     npulsars_y = Y[np.where(Y == 0)[0]]
 
-    #make_cluster(npulsars_x, npulsars_y, headers, [0, 1], 2, "HDBSCAN", True)
-    #make_cluster(npulsars_x, npulsars_y, headers, [2, 5], 2, "DBSCAN", False)
-    #make_cluster(pulsars_x, pulsars_y, headers, [3, 6], 4, "agglomerative", False)
-
-    classification(X, Y)
+    make_cluster(npulsars_x, npulsars_y, headers, [0, 1], 2, "HDBSCAN", True)
+    make_cluster(npulsars_x, npulsars_y, headers, [2, 5], 2, "DBSCAN", False)
+    make_cluster(pulsars_x, pulsars_y, headers, [3, 6], 4, "agglomerative", False)
+    classification(X, Y, headers[0:8])
 
 
 if __name__ == "__main__":
