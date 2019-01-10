@@ -4,13 +4,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from hdbscan import HDBSCAN
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
+
+from hdbscan import HDBSCAN
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import DBSCAN, KMeans
-from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier
+
 from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
 
 def read_csv():
@@ -66,10 +76,32 @@ def clusterization(X, n_clusters, type="agglomerative", ommit_last_class=False):
 
 
 def classification(x, y):
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.5, random_state=42)
-    cl = RandomForestClassifier()
-    cl.fit(X_train, y_train)
-    return cl
+    classifiers = [
+        KNeighborsClassifier(3),
+        SVC(kernel="linear", C=0.025),
+        SVC(gamma=2, C=1),
+        GaussianProcessClassifier(1.0 * RBF(1.0)),
+        DecisionTreeClassifier(max_depth=5),
+        RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+        MLPClassifier(alpha=1),
+        AdaBoostClassifier(),
+        GaussianNB(),
+        QuadraticDiscriminantAnalysis()]
+
+    names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
+             "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
+             "Naive Bayes", "QDA"]
+
+    results = {}
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.5, random_state=42)
+
+    for name, clf in zip(names, classifiers):
+        clf.fit(x_train, y_train)
+        score = clf.fit(x_test, y_test)
+        results[name] = score
+
+    print(results)
 
 
 def plot_data_summary(data):
@@ -150,9 +182,9 @@ def plot_variable_comparision(data):
     columns = [x for x in data.columns if x not in ["target_class"]]
     length = len(columns)
     plt.figure(figsize=(13, 20))
-    for i, j in itertools.izip_longest(columns, range(length)):
+    for i, j in itertools.zip_longest(columns, range(length)):
         plt.subplot(4, 2, j + 1)
-        sns.lvplot(x=data["target_class"], y=data[i])
+        sns.boxenplot(x=data["target_class"], y=data[i])
         plt.title(i)
         plt.subplots_adjust(hspace=1.)
         plt.axhline(data[i].mean(), linestyle="dashed", color="k", label="Mean value for data")
@@ -169,14 +201,13 @@ def plot_variable_pair(data):
     return
 
 
-def plot_3d(x, y, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), minc=0):
+def plot_3d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), minc=0):
     fig = plt.figure()
     ax = Axes3D(fig)
-    names = ['x', 'y', 'z']
 
-    ax.set_xlabel(names[0])
-    ax.set_ylabel(names[1])
-    ax.set_zlabel(names[2])
+    ax.set_xlabel(axis_labels[0])
+    ax.set_ylabel(axis_labels[1])
+    ax.set_zlabel(axis_labels[2])
 
     for i in range(categories):
         d = x[np.where(y == (i + minc))[0], :]
@@ -186,9 +217,9 @@ def plot_3d(x, y, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), min
     return
 
 
-def plot_2d(x, y, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), minc=0):
-    plt.xlabel('x')
-    plt.ylabel('y')
+def plot_2d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), minc=0):
+    plt.xlabel(axis_labels[0])
+    plt.ylabel(axis_labels[1])
 
     for i in range(categories):
         d = x[np.where(y == (i + minc))[0], :]
@@ -199,39 +230,50 @@ def plot_2d(x, y, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), min
     return
 
 
+def make_cluster(X, Y, labels, idxs, num_of_clusters, algorithm, ommit):
+    x = X[:, idxs]
+    t = Y
+    # [0, 1], [2, 5]
+    # [0,4], [3, 6], [0, 5]
+    # xx = reduce_dim(x, 1)
+    # x = reduce_dim(x, 3)
+
+    num_of_clusters, y = clusterization(x, num_of_clusters, algorithm, ommit)
+
+    if len(x[0]) == 3:
+        plot_3d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
+    else:
+        plot_2d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
+
+
 def run():
     X, Y, dataset = read_csv()
     print("number of records: ", Y.shape[0])
     print("number of columns: ", X.shape[1])
     print("pulsars before outlier detection: ", len(np.where(Y == 1)[0]))
 
-    plot_data_summary(dataset)
-    plot_data_correlation(dataset)
-    plot_data_proportion(Y)
-    plot_variable_comparision(dataset)
-    plot_variable_pair(dataset)
+    #plot_data_summary(dataset)
+    #plot_data_correlation(dataset)
+    #plot_data_proportion(Y)
+    #plot_variable_comparision(dataset) to bym wywalil
+    #plot_variable_pair(dataset)
 
-    X, Y = outliers(X, Y, False)
+    headers = np.array(dataset.columns.values.tolist())
+    #make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
+    X, Y = outliers(X, Y, True)
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
-    category = 0  # 1 pulsars, 0 not pulsars
-    XX = X[np.where(Y == category)[0], :]
-    y = Y[np.where(Y == category)[0]]
+    pulsars_x = X[np.where(Y == 1)[0], :]
+    pulsars_y = Y[np.where(Y == 1)[0]]
+    npulsars_x = X[np.where(Y == 0)[0], :]
+    npulsars_y = Y[np.where(Y == 0)[0]]
 
-    x = XX[:, [0, 1]]  # [0, 1], [2, 5]
-    # [0,4], [3, 6], [0, 5]
-    # xx = reduce_dim(x, 1)
-    # x = reduce_dim(x, 3)
-    num_of_clusters = 2
+    #make_cluster(npulsars_x, npulsars_y, headers, [0, 1], 2, "HDBSCAN", True)
+    #make_cluster(npulsars_x, npulsars_y, headers, [2, 5], 2, "DBSCAN", False)
+    #make_cluster(pulsars_x, pulsars_y, headers, [3, 6], 4, "agglomerative", False)
 
-    num_of_clusters, y = clusterization(x, num_of_clusters, "HDBSCAN", True)
-    # colors = ['b', 'g', 'r', 'm', 'y', 'k', 'c']
-
-    if len(x[0]) == 3:
-        plot_3d(x, y, 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
-    else:
-        plot_2d(x, y, 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
+    classification(X, Y)
 
 
 if __name__ == "__main__":
