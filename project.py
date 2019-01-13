@@ -109,6 +109,8 @@ def classification(x, y, labels):
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
 
+    # TODO: dodac plotowanie tutaj
+
     for name, clf in zip(names, classifiers):
         clf.fit(x_train, y_train)
         prediction = clf.predict(x_test)
@@ -172,13 +174,13 @@ def plot_data_correlation(data):
     return
 
 
-def plot_data_proportion(Y):
+def plot_data_proportion(data):
     fig = plt.figure(figsize=(12, 6))
-    ax = sns.countplot(x=Y)
+    ax = sns.countplot(x=data)
     for p in ax.patches:
         x = p.get_bbox().get_points()[:, 0]
         y = p.get_bbox().get_points()[1, 1]
-        ax.annotate('{:.1f}%'.format(100. * y / len(Y)),
+        ax.annotate('{:.1f}%'.format(100. * y / len(data)),
                     (x.mean(), y), ha="center", va="bottom")
     plt.title("Data distribution (pulsars, others)")
     plt.xlabel("target_class")
