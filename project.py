@@ -20,7 +20,7 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, Gradien
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.metrics import classification_report,confusion_matrix,accuracy_score,roc_curve,auc
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_curve, auc
 
 
 def read_csv():
@@ -72,7 +72,7 @@ def clusterization(X, n_clusters, type="agglomerative", ommit_last_class=False):
     elif type == "kmeans":
         cluster = KMeans(n_clusters)
     elif type == "DBSCAN":
-        cluster = DBSCAN(eps=0.45)
+        cluster = DBSCAN(eps=0.7, metric='manhattan')
     elif type == "HDBSCAN":
         cluster = HDBSCAN(min_cluster_size=450, min_samples=1, metric='manhattan')
 
@@ -95,7 +95,6 @@ def classification(x, y, labels):
         AdaBoostClassifier(),
         GaussianNB(),
         QuadraticDiscriminantAnalysis(),
-        LogisticRegression(),
         ExtraTreesClassifier(),
         GradientBoostingClassifier()]
 
@@ -137,7 +136,11 @@ def classification(x, y, labels):
     plt.legend(loc="best")
     plt.title("ROC - CURVE & AREA UNDER CURVE", fontsize=20)
 
-    dataframe = pd.DataFrame(algorithm.feature_importances_, labels).reset_index()
+    try:
+        dataframe = pd.DataFrame(algorithm.feature_importances_, labels).reset_index()
+    except AttributeError as e:
+        dataframe = pd.DataFrame(algorithm.coef_.ravel(), labels).reset_index()
+
     dataframe = dataframe.rename(columns={"index": "features", 0: "coefficients"})
     dataframe = dataframe.sort_values(by="coefficients", ascending=False)
     plt.subplot(223)
@@ -298,7 +301,7 @@ def run():
 
     headers = np.array(dataset.columns.values.tolist())
     make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, "distance",  False) #opcja density nie działa
+    X, Y = outliers(X, Y, "distance",  True) #opcja density nie działa
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
