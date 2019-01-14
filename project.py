@@ -39,18 +39,19 @@ def outliers(x, y, type, ignore_pulsars=False):  # TODO: other methods
         stdev = np.std(x, axis=0)
         ind = np.where(np.abs(x - mean) > 3 * stdev)[0]
     elif type == "density":
-        clusterer = HDBSCAN(min_cluster_size=15)
-        clusterer.fit(x)
+        clusterer = HDBSCAN(min_cluster_size=15).fit(x)
         threshold = pd.Series(clusterer.outlier_scores_).quantile(0.9)
         sns.distplot(clusterer.outlier_scores_[np.isfinite(clusterer.outlier_scores_)], rug=True)
         plt.show()
         ind = np.where(clusterer.outlier_scores_ > threshold)[0]
+
     #  >these three lines are to preserve all pulsars, because it deletes half of them
     if ignore_pulsars:
         pind = np.unique(np.where(y == 1)[0])
         iind = np.unique(np.where(np.isin(ind, pind)))
         ind = np.delete(ind, iind)
     #  >end
+
     print("outliers: %d" % len(ind))
     x = np.delete(x, ind, axis=0)
     y = np.delete(y, ind, axis=0)
@@ -441,7 +442,7 @@ def run():
 
     headers = np.array(dataset.columns.values.tolist())
     # make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, "distance", True)  # FIXME: opcja density nie działa
+    X, Y = outliers(X, Y, "density", True)
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
