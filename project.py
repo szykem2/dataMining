@@ -1,27 +1,26 @@
+import collections
 import itertools
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from mpl_toolkits.mplot3d import Axes3D
-from sklearn.decomposition import PCA
-
 from hdbscan import HDBSCAN
+from mpl_toolkits.mplot3d import Axes3D
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import DBSCAN, KMeans
-
-from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, \
     ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_curve, auc
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 
 
 def read_csv():
@@ -109,7 +108,7 @@ def classification(x, y, labels):
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
 
-    # TODO: dodac plotowanie tutaj
+    plot_splitted_data_proportion(y_train, y_test)
 
     for name, clf in zip(names, classifiers):
         clf.fit(x_train, y_train)
@@ -189,6 +188,23 @@ def plot_data_proportion(data):
     return
 
 
+def plot_splitted_data_proportion(y_train, y_test):
+    train_count = collections.Counter(y_train)
+    test_count = collections.Counter(y_test)
+
+    plt.figure(figsize=(12, 6))
+    plt.subplot(121)
+    plt.pie(list(train_count.values()),
+            autopct="%1.0f%%", labels=["not start", "star"])
+    plt.title("Proportion of target class in train data")
+    plt.subplot(122)
+    plt.pie(list(test_count.values()),
+            autopct="%1.0f%%", labels=["not start", "star"])
+    plt.title("Proportion of target class in test data")
+    plt.show()
+    return
+
+
 def plot_variable_comparision(data):
     compare = data.groupby("target_class").mean().reset_index()
     compare = compare.drop("target_class", axis=1)
@@ -196,6 +212,7 @@ def plot_variable_comparision(data):
     plt.title("Comparision of mean values between target classes")
     plt.xlabel("target_class")
     plt.ylabel("mean value")
+    plt.show()
 
     compare1 = data.groupby("target_class").std().reset_index()
     compare1 = compare1.drop("target_class", axis=1)
@@ -203,6 +220,7 @@ def plot_variable_comparision(data):
     plt.title("Comparision of standard deviation values between target classes")
     plt.xlabel("target_class")
     plt.ylabel("mean value")
+    plt.show()
 
     compare_mean = compare.transpose().reset_index()
     compare_mean = compare_mean.rename(columns={'index': "features", 0: "not_star", 1: "star"})
@@ -217,6 +235,7 @@ def plot_variable_comparision(data):
     ax.legend(handles=ax.lines[::len(compare_mean) + 1], labels=["Not star", "Star"])
     ax.set_xticklabels([t.get_text().split("T")[0] for t in ax.get_xticklabels()])
     plt.title("COMPARING MEAN OF ATTRIBUTES FOR TARGET CLASSES")
+    plt.show()
 
     compare_std = compare1.transpose().reset_index()
     compare_std = compare_std.rename(columns={'index': "features", 0: "not_star", 1: "star"})
@@ -233,19 +252,127 @@ def plot_variable_comparision(data):
     plt.title("COMPARING STANDARD DEVIATION OF ATTRIBUTES FOR TARGET CLASSES")
     plt.subplots_adjust(hspace=.4)
     plt.tight_layout()
+    plt.show()
 
     columns = [x for x in data.columns if x not in ["target_class"]]
     length = len(columns)
+
+    # next two are basically the same
     plt.figure(figsize=(13, 20))
     for i, j in itertools.zip_longest(columns, range(length)):
         plt.subplot(4, 2, j + 1)
         sns.boxenplot(x=data["target_class"], y=data[i])
         plt.title(i)
-        plt.subplots_adjust(hspace=1.)
         plt.axhline(data[i].mean(), linestyle="dashed", color="k", label="Mean value for data")
         plt.legend(loc="best")
-
+    plt.subplots_adjust(hspace=1.)
     plt.show()
+
+    plt.figure(figsize=(13, 25))
+    for i, j in itertools.zip_longest(columns, range(length)):
+        plt.subplot(length / 2, length / 4, j + 1)
+        sns.violinplot(x=data["target_class"], y=data[i])
+        plt.title(i)
+    plt.subplots_adjust(hspace=1.)
+    plt.show()
+    return
+
+
+def plot_variable_distribution(data):
+    columns = [x for x in data.columns.values if x not in ["target_class"]]
+    length = len(columns)
+    colors = ["r", "g", "b", "m", "y", "c", "k", "orange"]
+
+    plt.figure(figsize=(13, 20))
+    for i, j, k in itertools.zip_longest(columns, range(length), colors):
+        plt.subplot(length / 2, length / 4, j + 1)
+        sns.distplot(data[i], color=k)
+        plt.axvline(data[i].mean(), color="k", linestyle="dashed", label="mean")
+        plt.axvline(data[i].std(), color="b", linestyle="dotted", label="stdev")
+        plt.title(i)
+        plt.subplots_adjust(hspace=.3)
+        plt.legend(loc="upper right")
+
+    plt.tight_layout()
+    plt.show()
+    return
+
+
+def plot_important_variable_comparision(data):
+    plt.figure(figsize=(14, 7))
+
+    plt.subplot(121)
+    plt.scatter(x=data.columns.values[2], y=data.columns.values[3],
+                data=data[data["target_class"] == 1], alpha=.7,
+                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+    plt.scatter(x=data.columns.values[2], y=data.columns.values[3],
+                data=data[data["target_class"] == 0], alpha=.6,
+                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+    plt.axvline(data[data["target_class"] == 1].ix[:, 2].mean(),
+                color="g", linestyle="dashed", label="mean pulsar star")
+    plt.axvline(data[data["target_class"] == 0].ix[:, 2].mean(),
+                color="r", linestyle="dashed", label="mean non pulsar star")
+    plt.axhline(data[data["target_class"] == 1].ix[:, 3].mean(),
+                color="g", linestyle="dashed")
+    plt.axhline(data[data["target_class"] == 0].ix[:, 3].mean(),
+                color="r", linestyle="dashed")
+    plt.legend(loc="best")
+    plt.xlabel(data.columns.values[2])
+    plt.ylabel(data.columns.values[3])
+    plt.title("Comparision between skewness and kurtosis for target classes")
+
+    plt.subplot(122)
+    plt.scatter(x=data.columns.values[7], y=data.columns.values[6],
+                data=data[data["target_class"] == 0], alpha=.7,
+                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+    plt.scatter(x=data.columns.values[7], y=data.columns.values[6],
+                data=data[data["target_class"] == 1], alpha=.7,
+                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+    plt.axvline(data[data["target_class"] == 1].ix[:, 6].mean(),
+                color="g", linestyle="dashed", label="mean pulsar star")
+    plt.axvline(data[data["target_class"] == 0].ix[:, 6].mean(),
+                color="r", linestyle="dashed", label="mean non pulsar star")
+    plt.axhline(data[data["target_class"] == 1].ix[:, 7].mean(),
+                color="g", linestyle="dashed")
+    plt.axhline(data[data["target_class"] == 0].ix[:, 7].mean(),
+                color="r", linestyle="dashed")
+    plt.legend(loc="best")
+    plt.xlabel(data.columns.values[7])
+    plt.ylabel(data.columns.values[6])
+    plt.title("Comparision between skewness and kurtosis of dmsnr_curve for target classes")
+
+    plt.subplots_adjust(wspace=.4)
+    plt.tight_layout()
+    plt.show()
+
+    plt.figure(figsize=(14, 7))
+    plt.scatter(x=data.columns.values[0], y=data.columns.values[1],
+                data=data[data["target_class"] == 0], alpha=.7,
+                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+    plt.scatter(x=data.columns.values[0], y=data.columns.values[1],
+                data=data[data["target_class"] == 1], alpha=.7,
+                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+    plt.legend(loc="best")
+    plt.xlabel(data.columns.values[0])
+    plt.ylabel(data.columns.values[1])
+    plt.title("Comparision between mean and stdev profile for target classes")
+    plt.tight_layout()
+    plt.show()
+
+    plt.figure(figsize=(14, 7))
+    plt.scatter(x=data.columns.values[4], y=data.columns.values[5],
+                data=data[data["target_class"] == 0], alpha=.7,
+                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+    plt.scatter(x=data.columns.values[4], y=data.columns.values[5],
+                data=data[data["target_class"] == 1], alpha=.7,
+                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+    plt.legend(loc="best")
+    plt.xlabel(data.columns.values[4])
+    plt.ylabel(data.columns.values[5])
+    plt.title("Comparision between mean and stdev profile for target classes")
+    plt.tight_layout()
+    plt.show()
+
     return
 
 
@@ -304,12 +431,14 @@ def run():
     # plot_data_summary(dataset)
     # plot_data_correlation(dataset)
     # plot_data_proportion(Y)
-    plot_variable_comparision(dataset)  # to bym wywalil
+    # plot_variable_comparision(dataset)  # to bym wywalil
+    # plot_variable_distribution(dataset)
     # plot_variable_pair(dataset)
+    # plot_important_variable_comparision(dataset)
 
     headers = np.array(dataset.columns.values.tolist())
     make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, "distance", False)  # opcja density nie działa
+    X, Y = outliers(X, Y, "distance", False)  # FIXME: opcja density nie działa
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
@@ -322,6 +451,7 @@ def run():
     make_cluster(npulsars_x, npulsars_y, headers, [2, 5], 2, "DBSCAN", False)
     make_cluster(pulsars_x, pulsars_y, headers, [3, 6], 4, "agglomerative", False)
 
+    print("Starting classification: ")
     classification(X, Y, headers[0:8])
 
 
