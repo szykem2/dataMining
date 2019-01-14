@@ -46,12 +46,14 @@ def outliers(x, y, type, ignore_pulsars=False):  # TODO: other methods
             n_jobs=-1)
         clusters = outlier_detection.fit_predict(x)
         ind = np.where(clusters == -1)[0]
+
     #  >these three lines are to preserve all pulsars, because it deletes half of them
     if ignore_pulsars:
         pind = np.unique(np.where(y == 1)[0])
         iind = np.unique(np.where(np.isin(ind, pind)))
         ind = np.delete(ind, iind)
     #  >end
+
     print("outliers: %d" % len(ind))
     x = np.delete(x, ind, axis=0)
     y = np.delete(y, ind, axis=0)
@@ -441,8 +443,10 @@ def run():
     # plot_important_variable_comparision(dataset)
 
     headers = np.array(dataset.columns.values.tolist())
+
     make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
     X, Y = outliers(X, Y, "density", False)  # FIXME: opcja density nie dziala
+
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
