@@ -83,7 +83,7 @@ def outliers(x, y, type, ignore_pulsars=False):
         ind = np.delete(ind, iind)
     #  >end
 
-    print("outliers: %d" % len(ind))
+    print("\toutliers: %d" % len(ind))
     x = np.delete(x, ind, axis=0)
     y = np.delete(y, ind, axis=0)
     return x, y
@@ -113,6 +113,16 @@ def clusterization(X, n_clusters, type="agglomerative", ommit_last_class=False):
         cluster.labels_[np.where(cluster.labels_ == 3)] = 2
     num = len(np.unique(cluster.labels_))
     return num, cluster.labels_
+
+
+def make_cluster(X, Y, labels, idxs, num_of_clusters, algorithm, ommit):
+    x = X[:, idxs]
+    num_of_clusters, y = clusterization(x, num_of_clusters, algorithm, ommit)
+
+    if len(x[0]) == 3:
+        plot_3d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
+    else:
+        plot_2d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
 
 
 def classification(x, y, labels):
@@ -447,21 +457,16 @@ def plot_2d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'p
     return
 
 
-def make_cluster(X, Y, labels, idxs, num_of_clusters, algorithm, ommit):
-    x = X[:, idxs]
-    num_of_clusters, y = clusterization(x, num_of_clusters, algorithm, ommit)
-
-    if len(x[0]) == 3:
-        plot_3d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
-    else:
-        plot_2d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
-
-
 def run():
     X, Y, dataset = read_csv()
-    print("number of records: ", Y.shape[0])
-    print("number of columns: ", X.shape[1])
-    print("pulsars before outlier detection: ", len(np.where(Y == 1)[0]))
+    headers = np.array(dataset.columns.values.tolist())
+
+    print("BEFORE OUTLIERS: ")
+    print("\tnumber of records: ", Y.shape[0])
+    print("\tnumber of columns: ", X.shape[1])
+    print("\tpulsars: ", len(np.where(Y == 1)[0]))
+    print("\tnot pulsars: ", len(np.where(Y == 0)[0]))
+    print()
 
     # plot_data_summary(dataset)
     # plot_data_correlation(dataset)
@@ -471,25 +476,36 @@ def run():
     # plot_variable_pair(dataset)
     # plot_important_variable_comparision(dataset)
 
-    headers = np.array(dataset.columns.values.tolist())
-
     make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, "local", False)
 
-    print("reduced number of records: ", len(Y))
-    print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
+    print("Starting outliers...")
+    X, Y = outliers(X, Y, "local", False)
+    print("...finished outliers")
+    print()
+
+    print("AFTER OUTLIERS: ")
+    print("\tnumber of records: ", Y.shape[0])
+    print("\tnumber of columns: ", X.shape[1])
+    print("\tpulsars: ", len(np.where(Y == 1)[0]))
+    print("\tnot pulsars: ", len(np.where(Y == 0)[0]))
+    print()
 
     pulsars_x = X[np.where(Y == 1)[0], :]
     pulsars_y = Y[np.where(Y == 1)[0]]
     npulsars_x = X[np.where(Y == 0)[0], :]
     npulsars_y = Y[np.where(Y == 0)[0]]
 
+    print("Starting clusterization...")
     make_cluster(npulsars_x, npulsars_y, headers, [0, 1], 2, "HDBSCAN", True)
     make_cluster(npulsars_x, npulsars_y, headers, [2, 5], 2, "DBSCAN", False)
     make_cluster(pulsars_x, pulsars_y, headers, [3, 6], 4, "agglomerative", False)
+    print("...finished clusterization")
+    print()
 
-    print("Starting classification: ")
+    print("Starting classification...")
     classification(X, Y, headers[0:8])
+    print("...finished classification")
+    print()
 
 
 if __name__ == "__main__":
