@@ -9,15 +9,19 @@ from hdbscan import HDBSCAN
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import DBSCAN, KMeans
+from sklearn.covariance import EllipticEnvelope
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.ensemble import IsolationForest
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, \
     ExtraTreesClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import LocalOutlierFactor
 from sklearn.neural_network import MLPClassifier
+from sklearn.svm import OneClassSVM
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
@@ -32,13 +36,38 @@ def read_csv():
     return x, y, dataset
 
 
-def outliers(x, y, type, ignore_pulsars=False):  # TODO: other methods
+def outliers(x, y, type, ignore_pulsars=False):
     ind = None
-    if type == "distance":
+    if type == "distance":  # AVG
         mean = np.mean(x, axis=0)
         stdev = np.std(x, axis=0)
         ind = np.where(np.abs(x - mean) > 5 * stdev)[0]
-    elif type == "density":
+    elif type == "svm":  # BAD
+        # The svm.OneClassSVM is known to be sensitive to outliers and
+        #  thus does not perform very well for outlier detection.
+        clusterer = OneClassSVM(nu=0.05, kernel="rbf", gamma=0.00001)
+        predictions = clusterer.fit(x).predict(x)
+        ind = np.where(predictions == -1)[0]
+    elif type == "forest":  # BAD
+        # sklearn.ensemble.IsolationForest seem to perform reasonably well for multi-modal data sets.
+        clusterer = IsolationForest(behaviour="new",
+                                    contamination="auto",  # ustawiajac 3% działa ładnie, auto daje za dużo
+                                    random_state=42)
+        predictions = clusterer.fit(x).predict(x)
+        ind = np.where(predictions == -1)[0]
+    elif type == "local":  # THE BEST
+        # sklearn.neighbors.LocalOutlierFactor seem to perform reasonably well for multi-modal data sets.
+        # it only compares the score of abnormality of one sample with the scores of its neighbors.
+        clusterer = LocalOutlierFactor(n_neighbors=15,
+                                       contamination="auto")
+        predictions = clusterer.fit_predict(x)
+        ind = np.where(predictions == -1)[0]
+    elif type == "elliptic":  # BAD
+        # covariance.EllipticEnvelope assumes the data is Gaussian and learns an ellipse
+        clusterer = EllipticEnvelope()
+        predictions = clusterer.fit(x).predict(x)
+        ind = np.where(predictions == -1)[0]
+    elif type == "density":  # GREAT
         outlier_detection = DBSCAN(
             eps=15,
             metric="euclidean",
@@ -445,7 +474,7 @@ def run():
     headers = np.array(dataset.columns.values.tolist())
 
     make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, "density", False)  # FIXME: opcja density nie dziala
+    X, Y = outliers(X, Y, "local", False)
 
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
