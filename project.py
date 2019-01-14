@@ -37,14 +37,15 @@ def outliers(x, y, type, ignore_pulsars=False):  # TODO: other methods
     if type == "distance":
         mean = np.mean(x, axis=0)
         stdev = np.std(x, axis=0)
-        ind = np.where(np.abs(x - mean) > 3 * stdev)[0]
+        ind = np.where(np.abs(x - mean) > 5 * stdev)[0]
     elif type == "density":
-        clusterer = HDBSCAN(min_cluster_size=15)
-        clusterer.fit(x)
-        threshold = pd.Series(clusterer.outlier_scores_).quantile(0.9)
-        sns.distplot(clusterer.outlier_scores_[np.isfinite(clusterer.outlier_scores_)], rug=True)
-        plt.show()
-        ind = np.where(clusterer.outlier_scores_ > threshold)[0]
+        outlier_detection = DBSCAN(
+            eps=15,
+            metric="euclidean",
+            min_samples=15,
+            n_jobs=-1)
+        clusters = outlier_detection.fit_predict(x)
+        ind = np.where(clusters == -1)[0]
     #  >these three lines are to preserve all pulsars, because it deletes half of them
     if ignore_pulsars:
         pind = np.unique(np.where(y == 1)[0])
@@ -71,7 +72,7 @@ def clusterization(X, n_clusters, type="agglomerative", ommit_last_class=False):
     elif type == "kmeans":
         cluster = KMeans(n_clusters)
     elif type == "DBSCAN":
-        cluster = DBSCAN(eps=0.7, metric='manhattan')
+        cluster = DBSCAN(eps=0.93, min_samples=15, metric='manhattan')
     elif type == "HDBSCAN":
         cluster = HDBSCAN(min_cluster_size=450, min_samples=1, metric='manhattan')
 
@@ -440,8 +441,8 @@ def run():
     # plot_important_variable_comparision(dataset)
 
     headers = np.array(dataset.columns.values.tolist())
-    # make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, "distance", True)  # FIXME: opcja density nie działa
+    make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
+    X, Y = outliers(X, Y, "density", False)  # FIXME: opcja density nie dziala
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
 
