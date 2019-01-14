@@ -106,6 +106,8 @@ def classification(x, y, labels):
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
+    plot_splitted_data_proportion(y_train, y_test)
+
     for name, clf in zip(names, classifiers):
         clf.fit(x_train, y_train)
         prediction = clf.predict(x_test)
@@ -195,11 +197,11 @@ def plot_splitted_data_proportion(y_train, y_test):
 
     plt.figure(figsize=(12, 6))
     plt.subplot(121)
-    plt.pie(list(train_count.values()),
+    plt.pie([train_count.get(0), train_count.get(1)],
             autopct="%1.0f%%", labels=["not start", "star"])
     plt.title("Proportion of target class in train data")
     plt.subplot(122)
-    plt.pie(list(test_count.values()),
+    plt.pie([test_count.get(0), test_count.get(1)],
             autopct="%1.0f%%", labels=["not start", "star"])
     plt.title("Proportion of target class in test data")
     plt.show()
