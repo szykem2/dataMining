@@ -41,7 +41,7 @@ def outliers(x, y, type, ignore_pulsars=False):
     if type == "distance":  # AVG
         mean = np.mean(x, axis=0)
         stdev = np.std(x, axis=0)
-        ind = np.where(np.abs(x - mean) > 5 * stdev)[0]
+        ind = np.where(np.abs(x - mean) > 3 * stdev)[0]
     elif type == "svm":  # BAD
         # The svm.OneClassSVM is known to be sensitive to outliers and
         #  thus does not perform very well for outlier detection.
@@ -58,7 +58,7 @@ def outliers(x, y, type, ignore_pulsars=False):
     elif type == "local":  # THE BEST
         # sklearn.neighbors.LocalOutlierFactor seem to perform reasonably well for multi-modal data sets.
         # it only compares the score of abnormality of one sample with the scores of its neighbors.
-        clusterer = LocalOutlierFactor(n_neighbors=15,
+        clusterer = LocalOutlierFactor(n_neighbors=2,
                                        contamination="auto")
         predictions = clusterer.fit_predict(x)
         ind = np.where(predictions == -1)[0]
@@ -131,7 +131,7 @@ def classification(x, y, labels):
 
     names = ["Nearest Neighbors", "Linear SVM", "RBF SVM",
              "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-             "Naive Bayes", "QDA", "LogisticRegression", "ExtraTree", "Gradient Boosting"]
+             "Naive Bayes", "QDA", "ExtraTree", "Gradient Boosting"]
 
     predictions = []
     results = {}
@@ -160,15 +160,15 @@ def classification(x, y, labels):
     plt.figure(figsize=(13, 10))
     plt.subplot(221)
     sns.heatmap(confusion_matrix(y_test, prediction), annot=True, fmt="d", linecolor="k", linewidths=3)
-    plt.title("CONFUSION MATRIX", fontsize=20)
+    plt.title("MACIERZ POMYŁEK", fontsize=20)
 
     predicting_probabilites = algorithm.predict_proba(x_test)[:, 1]
     fpr, tpr, thresholds = roc_curve(y_test, predicting_probabilites)
     plt.subplot(222)
-    plt.plot(fpr, tpr, label=("Area_under the curve :", auc(fpr, tpr)), color="r")
+    plt.plot(fpr, tpr, label="Powierzchnia pod wykresem :" + str(auc(fpr, tpr)), color="r")
     plt.plot([1, 0], [1, 0], linestyle="dashed", color="k")
     plt.legend(loc="best")
-    plt.title("ROC - CURVE & AREA UNDER CURVE", fontsize=20)
+    plt.title("KRZYWA ROC", fontsize=20)
 
     try:
         dataframe = pd.DataFrame(algorithm.feature_importances_, labels).reset_index()
@@ -177,9 +177,9 @@ def classification(x, y, labels):
 
     dataframe = dataframe.rename(columns={"index": "features", 0: "coefficients"})
     dataframe = dataframe.sort_values(by="coefficients", ascending=False)
-    plt.subplot(223)
+    plt.subplot(224)
     ax = sns.barplot(x="coefficients", y="features", data=dataframe, palette="husl")
-    plt.title("FEATURE IMPORTANCES", fontsize=20)
+    plt.title("ISTOTNOŚĆ CECH", fontsize=20)
     for i, j in enumerate(dataframe["coefficients"]):
         ax.text(.011, i, j, weight="bold")
     plt.show()
@@ -193,7 +193,6 @@ def plot_data_summary(data):
     plt.title("Data summary")
     fig.tight_layout()
     plt.show()
-    return
 
 
 def plot_data_correlation(data):
@@ -205,7 +204,6 @@ def plot_data_correlation(data):
     plt.title("Correlation between variables")
     fig.tight_layout()
     plt.show()
-    return
 
 
 def plot_data_proportion(data):
@@ -220,7 +218,6 @@ def plot_data_proportion(data):
     plt.xlabel("target_class")
     fig.tight_layout()
     plt.show()
-    return
 
 
 def plot_splitted_data_proportion(y_train, y_test):
@@ -237,7 +234,6 @@ def plot_splitted_data_proportion(y_train, y_test):
             autopct="%1.0f%%", labels=["not start", "star"])
     plt.title("Proportion of target class in test data")
     plt.show()
-    return
 
 
 def plot_variable_comparision(data):
@@ -310,7 +306,6 @@ def plot_variable_comparision(data):
         plt.title(i)
     plt.subplots_adjust(hspace=1.)
     plt.show()
-    return
 
 
 def plot_variable_distribution(data):
@@ -330,7 +325,6 @@ def plot_variable_distribution(data):
 
     plt.tight_layout()
     plt.show()
-    return
 
 
 def plot_important_variable_comparision(data):
@@ -408,17 +402,14 @@ def plot_important_variable_comparision(data):
     plt.tight_layout()
     plt.show()
 
-    return
-
 
 def plot_variable_pair(data):
     sns.pairplot(data)
     plt.title("Pair plot for variables")
     plt.show()
-    return
 
 
-def plot_3d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), minc=0):
+def plot_3d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), title="plot", minc=0):
     fig = plt.figure()
     ax = Axes3D(fig)
 
@@ -430,11 +421,11 @@ def plot_3d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'p
         d = x[np.where(y == (i + minc))[0], :]
         ax.scatter(d[:, 0], d[:, 1], d[:, 2], s=size, label=labels[i])
     plt.legend(loc='best')
+    plt.title(title)
     plt.show()
-    return
 
 
-def plot_2d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), minc=0):
+def plot_2d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'pulsars'), title="plot", minc=0):
     plt.xlabel(axis_labels[0])
     plt.ylabel(axis_labels[1])
 
@@ -443,18 +434,25 @@ def plot_2d(x, y, axis_labels, size=0.2, categories=2, labels=('not pulsars', 'p
         plt.scatter(d[:, 0], d[:, 1], s=size, label=labels[i])
 
     plt.legend(loc='best')
+    plt.title(title)
     plt.show()
-    return
 
 
-def make_cluster(X, Y, labels, idxs, num_of_clusters, algorithm, ommit):
+def make_cluster(X, labels, idxs, num_of_clusters, algorithm, ommit, title):
     x = X[:, idxs]
     num_of_clusters, y = clusterization(x, num_of_clusters, algorithm, ommit)
+    print(num_of_clusters)
+    names = ['klaster ' + str(i + 1) for i in range(num_of_clusters)]
+    if algorithm == "DBSCAN" or algorithm == "HDBSCAN":
+        xx = ["punkty szumu"]
+        names = names[:-1]
+        xx.extend(names)
+        names = xx
 
     if len(x[0]) == 3:
-        plot_3d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
+        plot_3d(x, y, labels[idxs], 0.5, num_of_clusters, names, title, np.min(y))
     else:
-        plot_2d(x, y, labels[idxs], 0.5, num_of_clusters, ['c' + str(i + 1) for i in range(num_of_clusters)], np.min(y))
+        plot_2d(x, y, labels[idxs], 0.5, num_of_clusters, names, title, np.min(y))
 
 
 def run():
@@ -473,8 +471,8 @@ def run():
 
     headers = np.array(dataset.columns.values.tolist())
 
-    make_cluster(X, Y, headers, [0, 1], 2, "agglomerative", False)
-    X, Y = outliers(X, Y, "local", False)
+    # make_cluster(X, headers, [0, 1], 2, "agglomerative", False, 'Klasteryzacja, pełen zbiór')
+    X, Y = outliers(X, Y, "density", True)
 
     print("reduced number of records: ", len(Y))
     print("pulsars after outlier detection: ", len(np.where(Y == 1)[0]))
@@ -484,9 +482,9 @@ def run():
     npulsars_x = X[np.where(Y == 0)[0], :]
     npulsars_y = Y[np.where(Y == 0)[0]]
 
-    make_cluster(npulsars_x, npulsars_y, headers, [0, 1], 2, "HDBSCAN", True)
-    make_cluster(npulsars_x, npulsars_y, headers, [2, 5], 2, "DBSCAN", False)
-    make_cluster(pulsars_x, pulsars_y, headers, [3, 6], 4, "agglomerative", False)
+    # make_cluster(npulsars_x, headers, [0, 1], 2, "HDBSCAN", True, 'Klasteryzacja, nie pulsary')
+    # make_cluster(npulsars_x, headers, [2, 5], 2, "DBSCAN", False, 'Klasteryzacja, nie pulsary')
+    # make_cluster(pulsars_x, headers, [3, 6], 4, "agglomerative", False, 'Klasteryzacja, pulsary')
 
     print("Starting classification: ")
     classification(X, Y, headers[0:8])
