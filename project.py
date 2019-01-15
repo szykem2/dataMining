@@ -235,11 +235,11 @@ def plot_splitted_data_proportion(y_train, y_test):
     plt.figure(figsize=(12, 6))
     plt.subplot(121)
     plt.pie([train_count.get(0), train_count.get(1)],
-            autopct="%1.0f%%", labels=["not start", "star"])
+            autopct="%1.0f%%", labels=["not pulsar", "pulsar"])
     plt.title("Proportion of target class in train data")
     plt.subplot(122)
     plt.pie([test_count.get(0), test_count.get(1)],
-            autopct="%1.0f%%", labels=["not start", "star"])
+            autopct="%1.0f%%", labels=["not pulsar", "pulsar"])
     plt.title("Proportion of target class in test data")
     plt.show()
 
@@ -262,27 +262,27 @@ def plot_variable_comparision(data):
     plt.show()
 
     compare_mean = compare.transpose().reset_index()
-    compare_mean = compare_mean.rename(columns={'index': "features", 0: "not_star", 1: "star"})
+    compare_mean = compare_mean.rename(columns={'index': "features", 0: "not_pulsar", 1: "pulsar"})
     plt.figure(figsize=(13, 14))
     ax = plt.subplot(211)
-    sns.pointplot(ax=ax, x="features", y="not_star", data=compare_mean, color="r")
-    sns.pointplot(ax=ax, x="features", y="star", data=compare_mean, color="g")
+    sns.pointplot(ax=ax, x="features", y="not_pulsar", data=compare_mean, color="r")
+    sns.pointplot(ax=ax, x="features", y="pulsar", data=compare_mean, color="g")
     plt.xlabel("")
     plt.ylabel("mean value")
     plt.grid(True, alpha=.3)
-    ax.legend(handles=ax.lines[::len(compare_mean) + 1], labels=["Not star", "Star"])
+    ax.legend(handles=ax.lines[::len(compare_mean) + 1], labels=["not pulsar", "pulsar"])
     ax.set_xticklabels([t.get_text().split("T")[0] for t in ax.get_xticklabels()], rotation=45)
     plt.title("COMPARING MEAN OF ATTRIBUTES FOR TARGET CLASSES")
 
     compare_std = compare1.transpose().reset_index()
-    compare_std = compare_std.rename(columns={'index': "features", 0: "not_star", 1: "star"})
+    compare_std = compare_std.rename(columns={'index': "features", 0: "not_pulsar", 1: "pulsar"})
     ax = plt.subplot(212)
-    sns.pointplot(ax=ax, x="features", y="not_star", data=compare_std, color="r")
-    sns.pointplot(ax=ax, x="features", y="star", data=compare_std, color="g")
+    sns.pointplot(ax=ax, x="features", y="not_pulsar", data=compare_std, color="r")
+    sns.pointplot(ax=ax, x="features", y="pulsar", data=compare_std, color="g")
     plt.xlabel("")
     plt.ylabel("standard deviation value")
     plt.grid(True, alpha=.3)
-    ax.legend(handles=ax.lines[::len(compare_std) + 1], labels=["Not star", "Star"])
+    ax.legend(handles=ax.lines[::len(compare_std) + 1], labels=["not pulsar", "pulsar"])
     ax.set_xticklabels([t.get_text().split("T")[0] for t in ax.get_xticklabels()], rotation=45)
     plt.gcf().autofmt_xdate()
     plt.title("COMPARING STANDARD DEVIATION OF ATTRIBUTES FOR TARGET CLASSES")
@@ -337,14 +337,14 @@ def plot_important_variable_comparision(data):
     plt.subplot(121)
     plt.scatter(x=data.columns.values[2], y=data.columns.values[3],
                 data=data[data["target_class"] == 1], alpha=.7,
-                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+                label="pulsar", s=30, color="g", linewidths=.4, edgecolors="black")
     plt.scatter(x=data.columns.values[2], y=data.columns.values[3],
                 data=data[data["target_class"] == 0], alpha=.6,
-                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+                label="not pulsar", s=30, color="r", linewidths=.4, edgecolors="black")
     plt.axvline(data[data["target_class"] == 1].ix[:, 2].mean(),
-                color="g", linestyle="dashed", label="mean pulsar star")
+                color="g", linestyle="dashed", label="mean pulsar")
     plt.axvline(data[data["target_class"] == 0].ix[:, 2].mean(),
-                color="r", linestyle="dashed", label="mean non pulsar star")
+                color="r", linestyle="dashed", label="mean non pulsar")
     plt.axhline(data[data["target_class"] == 1].ix[:, 3].mean(),
                 color="g", linestyle="dashed")
     plt.axhline(data[data["target_class"] == 0].ix[:, 3].mean(),
@@ -357,14 +357,14 @@ def plot_important_variable_comparision(data):
     plt.subplot(122)
     plt.scatter(x=data.columns.values[7], y=data.columns.values[6],
                 data=data[data["target_class"] == 0], alpha=.7,
-                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+                label="not pulsar", s=30, color="r", linewidths=.4, edgecolors="black")
     plt.scatter(x=data.columns.values[7], y=data.columns.values[6],
                 data=data[data["target_class"] == 1], alpha=.7,
-                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+                label="pulsar ", s=30, color="g", linewidths=.4, edgecolors="black")
     plt.axvline(data[data["target_class"] == 1].ix[:, 6].mean(),
-                color="g", linestyle="dashed", label="mean pulsar star")
+                color="g", linestyle="dashed", label="mean pulsar")
     plt.axvline(data[data["target_class"] == 0].ix[:, 6].mean(),
-                color="r", linestyle="dashed", label="mean non pulsar star")
+                color="r", linestyle="dashed", label="mean non pulsar")
     plt.axhline(data[data["target_class"] == 1].ix[:, 7].mean(),
                 color="g", linestyle="dashed")
     plt.axhline(data[data["target_class"] == 0].ix[:, 7].mean(),
@@ -381,10 +381,10 @@ def plot_important_variable_comparision(data):
     plt.figure(figsize=(14, 7))
     plt.scatter(x=data.columns.values[0], y=data.columns.values[1],
                 data=data[data["target_class"] == 0], alpha=.7,
-                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+                label="not pulsar", s=30, color="r", linewidths=.4, edgecolors="black")
     plt.scatter(x=data.columns.values[0], y=data.columns.values[1],
                 data=data[data["target_class"] == 1], alpha=.7,
-                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+                label="pulsar", s=30, color="g", linewidths=.4, edgecolors="black")
     plt.legend(loc="best")
     plt.xlabel(data.columns.values[0])
     plt.ylabel(data.columns.values[1])
@@ -395,10 +395,10 @@ def plot_important_variable_comparision(data):
     plt.figure(figsize=(14, 7))
     plt.scatter(x=data.columns.values[4], y=data.columns.values[5],
                 data=data[data["target_class"] == 0], alpha=.7,
-                label="not pulsar stars", s=30, color="r", linewidths=.4, edgecolors="black")
+                label="not pulsar", s=30, color="r", linewidths=.4, edgecolors="black")
     plt.scatter(x=data.columns.values[4], y=data.columns.values[5],
                 data=data[data["target_class"] == 1], alpha=.7,
-                label="pulsar stars", s=30, color="g", linewidths=.4, edgecolors="black")
+                label="pulsar", s=30, color="g", linewidths=.4, edgecolors="black")
     plt.legend(loc="best")
     plt.xlabel(data.columns.values[4])
     plt.ylabel(data.columns.values[5])
@@ -408,8 +408,18 @@ def plot_important_variable_comparision(data):
 
 
 def plot_variable_pair(data):
-    sns.pairplot(data)
-    plt.title("Pair plot for variables")
+    g = sns.PairGrid(data, hue="target_class", hue_kws={"marker": [".", "."]}, height=3.)
+    g = g.map_diag(plt.hist, linewidth=.5)
+    g = g.map_offdiag(plt.scatter, linewidths=1, edgecolor="w", s=30)
+    g = g.add_legend()
+
+    labels = ["mean_profile", "std_profile", "kurtosis_profile", "skewness_profile", "mean_curve", "std_curve",
+              "kurtosis_curve", "skewness_curve", "target_class"]
+    for j in range(8):
+        g.axes[j, 0].yaxis.set_label_text(labels[j])
+        g.axes[8, j].xaxis.set_label_text(labels[j])
+
+    g.fig.subplots_adjust(left=.04, bottom=.04)
     plt.show()
 
 
