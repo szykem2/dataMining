@@ -36,7 +36,7 @@ def read_csv():
     return x, y, dataset
 
 
-def outliers(x, y, type, ignore_pulsars=False):
+def outliers(x, y, dataset, type, ignore_pulsars=False):
     ind = None
     if type == "distance":  # AVG
         mean = np.mean(x, axis=0)
@@ -84,7 +84,8 @@ def outliers(x, y, type, ignore_pulsars=False):
     print("\toutliers: %d" % len(ind))
     x = np.delete(x, ind, axis=0)
     y = np.delete(y, ind, axis=0)
-    return x, y
+    dataset = dataset.drop(ind)
+    return x, y, dataset
 
 
 def reduce_dim(x, dim=3):
@@ -490,7 +491,8 @@ def run():
 
     # make_cluster(X, headers, [0, 1], 2, "agglomerative", False, 'Klasteryzacja, pełen zbiór')
     print("Starting outliers...")
-    X, Y = outliers(X, Y, "density", False)
+    X, Y, dataset = outliers(X, Y, dataset, "density", False)
+    plot_data_summary(dataset)
     print("...finished outliers")
     print()
 
@@ -507,9 +509,9 @@ def run():
     npulsars_y = Y[np.where(Y == 0)[0]]
 
     print("Starting clusterization...")
-    make_cluster(npulsars_x, headers, [0, 1], 2, "HDBSCAN", True, 'Klasteryzacja, nie pulsary')
-    make_cluster(npulsars_x, headers, [2, 5], 2, "DBSCAN", False, 'Klasteryzacja, nie pulsary')
-    make_cluster(pulsars_x, headers, [3, 6], 4, "agglomerative", False, 'Klasteryzacja, pulsary')
+    # make_cluster(npulsars_x, headers, [0, 1], 2, "HDBSCAN", True, 'Klasteryzacja, nie pulsary')
+    # make_cluster(npulsars_x, headers, [2, 5], 2, "DBSCAN", False, 'Klasteryzacja, nie pulsary')
+    # make_cluster(pulsars_x, headers, [3, 6], 4, "agglomerative", False, 'Klasteryzacja, pulsary')
     print("...finished clusterization")
     print()
 
