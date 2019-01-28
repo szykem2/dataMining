@@ -3,9 +3,6 @@
 This repo contains source code for data mining project.
 Dataset used for mining is pulsar prediction dataset:  https://archive.ics.uci.edu/ml/datasets/HTRU2
 
-### Presentation
-https://docs.google.com/presentation/d/173eeMte-7TG-_mDoF1Bq8AxjEuR2D15h0cP2dBJzpiE/edit?usp=sharing
-
 ------
 ### Developer guide   
 
